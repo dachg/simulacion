@@ -1,87 +1,103 @@
 import streamlit as st
+import math
 import matplotlib.pyplot as plt
-from math import gcd
 
-st.set_page_config(page_title="Desafío: Corte de telas", layout="centered")
+st.set_page_config(layout="wide")
+st.title("🧵 Corta las cuerdas")
+st.write(
+    "Juana tiene una cuerda de 16 cm y otra de 40 cm desea cortarlas, de modo que, todos los trozos sea iguales pero lo más largo posibles.\n")
+st.write(
+    "**¿Cuántos pedazos de cuerda puede cortar en cada cuerda?**")
 
-st.title("🧩 Desafío guiado: Corte de telas")
 
-st.markdown(
-"""
-Tienes dos tiras de tela de diferentes longitudes.  
-Explora, piensa y descubre *cuál es la pieza más grande* que puedes cortar sin que sobre nada.
-"""
-)
+# ------------------------
+# Funciones
+# ------------------------
+def divisores(n):
+    return sorted([i for i in range(1, n + 1) if n % i == 0])
 
-# --- SLIDERS ---
-a = st.slider("Longitud de la tela A", 1, 60, 24)
-b = st.slider("Longitud de la tela B", 1, 60, 36)
+def dibujar_cuerda(ax, longitud, corte, y, etiqueta):
+    ax.plot([0, longitud], [y, y], linewidth=8)
+    for x in range(0, longitud + 1, corte):
+        ax.plot([x, x], [y - 0.15, y + 0.15])
+    ax.text(longitud + 0.5, y, f"{longitud} cm", va="center")
+    ax.text(-1.5, y, etiqueta, va="center", ha="right")
 
-m = gcd(a, b)
+# ------------------------
+# Longitudes fijas del problema
+# ------------------------
+cuerda1 = 40
+cuerda2 = 16
 
-# --- NIVEL 2: PREDICCIÓN ---
-st.subheader("✏️ Paso 1: Predice")
-pred = st.number_input(
-    "¿Cuánto crees que medirá la pieza más grande?",
-    min_value=1,
-    max_value=60,
-    step=1
-)
+factores1 = divisores(cuerda1)
+factores2 = divisores(cuerda2)
 
-# --- BOTÓN ---
-if st.button("Comprobar"):
-    st.subheader("🔍 Paso 2: Comprobación")
 
-    if pred == m:
-        st.success("¡Correcto! 🎉 Ambas telas se pueden dividir en piezas de esa longitud.")
-    else:
-        st.error(f"No coincide. La pieza más grande posible mide {m}.")
+col1, col2 = st.columns(2)
 
-    st.info(
-        "La longitud buscada debe dividir exactamente a ambas telas "
-        "y ser lo más grande posible."
+with col1:
+    # ------------------------
+    # Sliders SOLO con factores
+    # ------------------------
+    st.subheader("🎛️ Selecciona el tamaño del corte")
+    st.write(
+        "Los sliders solo permiten elegir **factores (divisores)** de cada cuerda.\n"
+        "El valor seleccionado representa el **tamaño de cada corte**."
+    )
+    corte1 = st.select_slider(
+        "Cuerda de 40 cm",
+        options=factores1,
+        value=factores1[0]
     )
 
-    # --- GRÁFICO ---
-    fig, ax = plt.subplots(figsize=(8, 2))
+    corte2 = st.select_slider(
+        "Cuerda de 16 cm",
+        options=factores2,
+        value=factores2[0]
+    )
 
-    ax.broken_barh([(0, a)], (1, 0.4))
-    for i in range(0, a + 1, m):
-        ax.plot([i, i], [1, 1.4])
+    # ------------------------
+    # Visualización
+    # ------------------------
+    st.subheader("✂️ Representación visual de las cuerdas")
 
-    ax.broken_barh([(0, b)], (0, 0.4))
-    for i in range(0, b + 1, m):
-        ax.plot([i, i], [0, 0.4])
+    fig, ax = plt.subplots(figsize=(10, 3))
 
-    ax.set_yticks([0.2, 1.2])
-    ax.set_yticklabels(["Tela B", "Tela A"])
-    ax.set_xlabel("Longitud")
-    ax.set_xlim(0, max(a, b) + 1)
+    dibujar_cuerda(ax, cuerda1, corte1, 2, "Cuerda 40 cm")
+    dibujar_cuerda(ax, cuerda2, corte2, 1, "Cuerda 16 cm")
 
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0, max(cuerda1, cuerda2) + 5)
+    ax.set_ylim(0.5, 2.5)
+    ax.set_xlabel("Centímetros")
+    ax.set_yticks([])
+    ax.set_title("Cortes según el factor seleccionado")
+    ax.grid(True, axis="x", linestyle="--", alpha=0.4)
 
     st.pyplot(fig)
+with col2:
+        
+    # ------------------------
+    # Análisis matemático
+    # ------------------------
+    st.subheader("🔍 Análisis")
 
-# --- NIVEL 4: REFLEXIÓN ---
-st.subheader("🧠 Paso 3: Reflexiona")
+    st.write(f"- Cuerda 40 cm → {cuerda1 // corte1} trozos de {corte1} cm")
+    st.write(f"- Cuerda 16 cm → {cuerda2 // corte2} trozos de {corte2} cm")
 
-opciones = st.multiselect(
-    "Marca las afirmaciones que SIEMPRE sean verdaderas:",
-    [
-        "La pieza divide exactamente a ambas telas",
-        "La pieza puede ser mayor que alguna de las telas",
-        "La pieza es un divisor común",
-        "La pieza es la mayor posible"
-    ]
-)
+    # ------------------------
+    # Detección visual del MCD
+    # ------------------------
+    if corte1 == corte2:
+        st.success(
+            f"✅ Ambos cortes coinciden en **{corte1} cm**.\n\n"
+            f"Este valor es un **divisor común**."
+        )
 
-if opciones:
-    if set(opciones) == {
-        "La pieza divide exactamente a ambas telas",
-        "La pieza es un divisor común",
-        "La pieza es la mayor posible"
-    }:
-        st.success("¡Excelente! Has descrito correctamente la idea del MCD.")
+        if corte1 == math.gcd(cuerda1, cuerda2):
+            st.balloons()
+            st.success("🎉 ¡Este es el MCD! Es el mayor tamaño posible para que los trozos sean iguales.")
     else:
-        st.warning("Revisa tus elecciones y piensa en los cortes.")
+        st.info(
+            "🔎 Ajusta los sliders hasta que ambos tengan el **mismo valor**.\n"
+            "Luego busca el **mayor valor posible**."
+        )
